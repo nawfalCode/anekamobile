@@ -1,0 +1,167 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+<div class="jumbotron">
+    <h1>Aneka</h1>
+    <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
+    <p>
+        <input type="button" class="btn btn-primary btn-lg" value="Get the result" onclick="getTheResult()" />
+        <div id="result"></div>
+
+    </p>
+</div>
+
+<div class="row">
+
+</div>
+<div>
+    <video autoplay></video>
+    <img src="">
+</div>
+
+<canvas id="canvas" style="display:none;" width="100px" height="80px"></canvas>
+
+
+<script>
+
+    var errorCallback = function (e) {
+        console.log('Rejected:use https protocol!', e);
+    };
+
+    navigator.getUserMedia = navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia ||
+        navigator.msGetUserMedia;
+
+    var video = document.querySelector('video');
+    var canvas = document.querySelector('canvas');
+
+    video.addEventListener('click', snapshot, false);
+    var ctx = canvas.getContext('2d');
+    var localMediaStream = null;
+
+
+
+    MediaStreamTrack.getSources(function (sourceInfos) {
+        var audioSource = null;
+        var videoSource = null;
+
+        for (var i = 0; i != sourceInfos.length; ++i) {
+            var sourceInfo = sourceInfos[i];
+            if (sourceInfo.kind === 'audio') {
+                console.log(sourceInfo.id, sourceInfo.label || 'microphone');
+
+                audioSource = sourceInfo.id;
+            } else if (sourceInfo.kind === 'video') {
+                console.log(sourceInfo.id, sourceInfo.label || 'camera');
+
+                videoSource = sourceInfo.id;
+            } else {
+                console.log('Some other kind of source: ', sourceInfo);
+            }
+        }
+
+        sourceSelected(audioSource, videoSource);
+    });
+
+
+    function sourceSelected(audioSource, videoSource) {
+        var constraints = {
+            audio: false,
+            video: {
+                optional: [{ sourceId: videoSource }]
+            }
+        };
+
+        if (navigator.getUserMedia) {
+            navigator.getUserMedia(constraints, function (stream) {
+                video.src = window.URL.createObjectURL(stream);
+                localMediaStream = stream;
+                //   requestAnimationFrame(draw);
+            }, errorCallback);
+        } else {
+            video.src = 'somevideo.webm'; // fallback.
+        }
+    }
+
+
+
+    function snapshot() {
+        if (localMediaStream) {
+            document.getElementById('result').innerHTML = "";
+            canvas.setAttribute('width', video.videoWidth);
+            canvas.setAttribute('height', video.videoHeight);
+            ctx.drawImage(video, 0, 0);
+      //      var image = document.getElementById("canvas").toDataURL("image/png");
+       //     image = image.replace('data:image/png;base64,', '');
+
+            //  getBlackWhiteRatio(ctx.getImageData(0, 0, video.videoWidth, video.videoHeight).data, video.videoWidth,
+            // video.videoHeight); "image/webp" works in Chrome. Other browsers will fall back to image/png.
+            //   var imagedata = ctx.getImageData(0, 0, video.videoWidth, video.videoHeight).data;
+
+            var imageData = ctx.getImageData(0, 0, video.videoWidth/2, video.videoHeight/2).data;
+            console.log('size=' + imageData.length);
+            var formData = new FormData();
+            formData.append('fileData', imageData);
+            var xhr = new XMLHttpRequest();
+
+/*            xhr.open('POST', '/home/getimage', true);
+//            xhr.setRequestHeader('imagelength', video.videoWidth * video.videoHeight);
+            xhr.send(image);
+            */
+
+            xhr.open('POST', "/home/upload", true);
+            xhr.send(formData);
+
+
+
+
+            // $.post('/Home/getimage', $.param({ data: ctx.getImageData(0, 0, video.videoWidth, video.videoHeight).data }, true), function (data) { });
+
+            /*
+            $.ajax({
+                url: '/Home/getimage',
+                type: 'POST',
+                data: JSON.stringify({ image: ctx.getImageData(0, 0, video.videoWidth, video.videoHeight).data }),
+                traditional: true,
+                datatype: "json",
+                success: function (result) {
+                    alert('OK');
+                }
+            });
+
+            */
+
+            /*
+                        imageList.push({
+                            image: ctx.getImageData(0, 0, video.videoWidth, video.videoHeight).data,
+                            date: new Date(),
+                            whiteBlack: -1,
+                            color: 'unknown'
+                        });
+                        */
+        }
+    }
+
+    function getTheResult() {
+
+        $.ajax({
+            type: "GET",
+            url: "../Home/receive2", // the method we are calling
+            contentType: "application/json; charset=utf-8",
+            data: { "p": "nawfal" },
+            dataType: "json",
+            success: function (result) {
+                document.getElementById('result').innerHTML = result;
+                // Or if you are returning something
+
+            },
+            error: function (result) {
+                alert('Oh no aa :(' + result[0]);
+            }
+
+        });
+    }
+
+</script>
